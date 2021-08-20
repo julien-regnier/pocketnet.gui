@@ -1,0 +1,53 @@
+@import "../../css/__cssvar";
+
+#downloadslist{
+	padding : 5 * @rhythm;
+	background: #fff;
+
+	.caption{
+		font-weight: 100;
+		font-size: 2em;
+		margin-bottom: 2 * @rhythm;
+	}
+
+	.loaderWrapper{
+		display : none;
+		padding : 2 * @rhythm;
+		text-align: center;
+	}
+
+	&.loading{
+		.loaderWrapper{
+			display: block;
+		}
+	}
+
+	.downloads{
+		
+		
+	}
+}
+
+html.stblack{
+	#downloadslist{
+		background: transparent;
+	
+	
+		.downloads{
+			
+		}
+	}	
+}
+
+/*t*/ @media only screen and (max-width: 768px){
+#downloadslist{
+	padding : 2 * @rhythm;
+
+	.caption{
+	}
+
+	.downloads{
+
+	}
+}
+}

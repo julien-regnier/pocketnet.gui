@@ -1717,6 +1717,34 @@ __map =  {
 		},
 		anonimus : true,
 	},
+	downloadslist : {
+		uri : "downloadslist",
+		href : "downloadslist",
+		add : function(settings, p){
+
+			if(p.inWnd)
+			{
+				return {
+					insert : 'wnd'
+				}
+			}
+			else
+			if(p.inTooltip)
+			{
+				return {
+					insert : 'tooltip'
+				}
+			}
+			else
+			{
+				return {
+					el : 'content'
+				}
+			}
+
+		},
+		anonimus : true,
+	},
 	ustate : {
 		uri : "ustate",
 		href : "ustate",

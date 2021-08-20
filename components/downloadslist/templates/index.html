@@ -1,0 +1,23 @@
+<div id="<%-module.map.id%>">
+	<% if(downloads.length) {%>
+
+		<div class="caption">
+			<%=caption%>
+		</div>
+
+		<div class="downloads">
+		</div>
+		<div class="loaderWrapper">
+			<div class="loader">
+				<div class="preloader5"><span></span><span></span><span></span></div>
+			</div>
+		</div>
+
+	<% } else { %> 
+
+		<div class="empty">
+			<%=empty%>
+		</div>
+
+	<% } %>
+</div>

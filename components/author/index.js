@@ -305,6 +305,14 @@ var author = (function(){
 						}
 					},
 		
+
+					downloadslist : {
+						name : self.app.localization.e('downloads').toUpperCase() + ' <i class="fas fa-download"></i>',
+						mobile : '<i class="fas fa-download"></i>',
+						id : 'downloadslist',
+						render : 'downloadslist',
+						history : true
+					},
 					
 		
 					share : {
@@ -618,6 +626,28 @@ var author = (function(){
 
 					if (clbk)
 						clbk();
+				})
+			},
+
+			downloadslist : function(_el, report){
+
+				self.nav.api.load({
+
+					open : true,
+					id : 'downloadslist',
+					el : _el,
+					animation : false,
+
+					essenseData : {
+						downloads : [],
+						empty : self.app.localization.e('downloadsEmpty'),
+						caption : self.app.localization.e('downloads')
+					},
+					
+					clbk : function(e, p){
+						report.module = p;
+					}
+
 				})
 			},
 
