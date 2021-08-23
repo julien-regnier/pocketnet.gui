@@ -118,7 +118,37 @@ var downloadslist = (function(){
 
 		var initEvents = function(){
 			
-			
+			el.downloadButton.on('click', function() {
+
+				if (!cordova || !cordova.file) return;
+				// Check if external storage is available, if not, use the internal
+				var storage = (cordova.file.externalDataDirectory) ? cordova.file.externalDataDirectory : cordova.file.dataDirectory;
+				var fileName = "fragmented.mp4";
+				var uriString = "https://media.zat.im/download/streaming-playlists/hls/videos/45689eee-9c51-493a-9155-876429af5c55-576-fragmented.mp4";
+				// open target file for download
+				window.resolveLocalFileSystemURL(storage, function(dirEntry) {
+					dirEntry.getFile(fileName, { create: true }, function (targetFile) {
+						var downloader = new BackgroundTransfer.BackgroundDownloader();
+						// Create a new download operation.
+						var download = downloader.createDownload(uriString, targetFile);
+						// Start the download and persist the promise to be able to cancel the download.
+						app.downloadPromise = download.startAsync().then(function(e) {
+							// Success
+							console.log("success");
+							console.log(e);
+						}, function(e) {
+							// Error
+							console.log("error");
+							console.log(e);
+						}, function(e) {
+							// Progress
+							console.log("progress");
+							console.log(e);
+						});
+					});
+				});
+
+			});
 			
 		}
 
@@ -163,7 +193,8 @@ var downloadslist = (function(){
 
 				el = {};
 				el.c = p.el.find('#' + self.map.id);
-				el.downloads = el.c.find('.downloads')
+				el.downloads = el.c.find('.downloads');
+				el.downloadButton = el.c.find('#downloadButton');
 
 				initEvents();
 
