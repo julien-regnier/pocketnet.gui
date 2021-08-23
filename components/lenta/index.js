@@ -20,7 +20,7 @@ var lenta = (function(){
 		var making = false, ovf = false;
 
 		var w, essenseData, recomended = [], recommended, mestate, initedcommentes = {}, canloadprev = false,
-		video = false, isotopeinited = false, videosVolume = 0;
+		video = false, isotopeinited = false, videosVolume = 0, downloadMenus = {};
 
 
 		var commentsInited = {},
@@ -1743,6 +1743,58 @@ var lenta = (function(){
 				var id = $(this).closest('.share').attr('id');
 
 				actions.postscores(id)
+			},
+
+			downloadVideo : function() {
+				var id = $(this).closest('.share').attr('id');
+				if (downloadMenus[id])
+					downloadMenus[id].tooltip.tooltipster('show');
+				else {
+					if (!players[id] || !players[id].p || !players[id].p.embed) return;
+					var embed = players[id].p.embed;
+					if (!embed.details || !embed.details.streamingPlaylists || embed.details.streamingPlaylists.length <= 0) return;
+					var streamingPlaylist = embed.details.streamingPlaylists[0];
+					if (!streamingPlaylist || !streamingPlaylist.files || streamingPlaylist.files.length <= 0) return;
+					// Generate the HTML menu
+					var menuContent = '<div class="sharepostmenu downloadMenu">';
+					_.each(streamingPlaylist.files, function(file) {
+						if (!file || !file.resolution || !file.resolution.label || !file.fileDownloadUrl) return;
+						menuContent += `<div class="menuitem table"><div class="label download${file.resolution.id}"><span>${file.resolution.label}</span>`;
+						if (file.size)
+							menuContent += `<span class="lightColor">${formatBytes(file.size)}</span>`;
+						menuContent += `</div></div>`;
+					});
+					menuContent += "</div>";
+					// Open the menu
+					downloadMenus[id] = { tooltip: el.c.find('.downloadBtn.' + id), events: false };
+					downloadMenus[id].tooltip.tooltipster({
+						content: $(menuContent),
+						theme: 'lighttooltip',
+						maxWidth : 200,
+						zIndex : 9999999,
+						trigger : 'click',
+						position: 'left',
+						interactive: true,
+						functionReady: function() {
+							// Menu is now open, add events if needed
+							if (!downloadMenus[id].events) {
+								_.each(streamingPlaylist.files, function(file) {
+									if (!file || !file.resolution) return;
+									$('.label.download' + file.resolution.id).on('click', function() {
+										events.downloadVideoFromUrl(file, file.resolution.id);
+									});
+								});
+								downloadMenus[id].events = true;
+							}
+						}
+					});
+					downloadMenus[id].tooltip.tooltipster('show');
+				}
+			},
+
+			downloadVideoFromUrl: function(video, qualityId) {
+				console.log(video);
+				console.log(qualityId);
 			},
 
 			like : function(){
@@ -3507,6 +3559,8 @@ var lenta = (function(){
 			el.c.on('click', '.complain', events.complain)
 			el.c.on('click', '.imageOpen', events.openGallery)
 			el.c.on('click', '.txid', events.getTransaction)
+
+			el.c.on('click', '.downloadBtn', events.downloadVideo);
 
 			if(!isMobile()){
 				//el.c.on('click', '.sharecaption', events.openPost)

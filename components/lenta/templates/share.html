@@ -106,6 +106,13 @@ var metadisplay = function(){ %>
 						
 					</div>
 				<% } %>
+				<% if(share.url && parseVideo(share.url).type) {%>
+					<div class="metapanelitem">
+						<div class="downloadBtn <%-share.txid%>">
+							<i class="fas fa-download"></i> 
+						</div>
+					</div>
+				<% } %>
 			</div>
 			
 
