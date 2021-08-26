@@ -1752,7 +1752,7 @@ var lenta = (function(){
 				else {
 					if (!players[id] || !players[id].p || !players[id].p.embed) return;
 					var embed = players[id].p.embed;
-					if (!embed.details || !embed.details.streamingPlaylists || embed.details.streamingPlaylists.length <= 0) return;
+					if (!embed.details || !embed.details.uuid || !embed.details.streamingPlaylists || embed.details.streamingPlaylists.length <= 0) return;
 					var streamingPlaylist = embed.details.streamingPlaylists[0];
 					if (!streamingPlaylist || !streamingPlaylist.files || streamingPlaylist.files.length <= 0) return;
 					// Generate the HTML menu
@@ -1779,9 +1779,10 @@ var lenta = (function(){
 							// Menu is now open, add events if needed
 							if (!downloadMenus[id].events) {
 								_.each(streamingPlaylist.files, function(file) {
-									if (!file || !file.resolution) return;
+									if (!file || !file.resolution || !file.resolution.id) return;
 									$('.label.download' + file.resolution.id).on('click', function() {
-										events.downloadVideoFromUrl(file, file.resolution.id);
+										events.downloadVideoFromUrl(embed.details.uuid, file);
+										downloadMenus[id].tooltip.tooltipster('hide');
 									});
 								});
 								downloadMenus[id].events = true;
@@ -1792,9 +1793,49 @@ var lenta = (function(){
 				}
 			},
 
-			downloadVideoFromUrl: function(video, qualityId) {
-				console.log(video);
-				console.log(qualityId);
+			downloadVideoFromUrl: function(id, video) {
+				if (!video || !video.fileDownloadUrl) return;
+				// Mobile
+				if (isMobile() && window.cordova && window.cordova.file) {
+					// Check if external storage is available, if not, use the internal
+					var storage = (window.cordova.file.externalDataDirectory) ? window.cordova.file.externalDataDirectory : window.cordova.file.dataDirectory;
+					// open target file for download
+					window.resolveLocalFileSystemURL(storage, function(dirEntry) {
+						// Create a downloads folder
+						dirEntry.getDirectory('Downloads', { create: true }, function (dirEntry2) {
+							// Get/create a folder for this video
+							dirEntry2.getDirectory(id, { create: true }, function (dirEntry3) {
+								// Download the video
+								dirEntry3.getFile(video.resolution.id + '.mp4', { create: true }, function (targetFile) {
+									var downloader = new BackgroundTransfer.BackgroundDownloader();
+									// Create a new download operation.
+									var download = downloader.createDownload(video.fileDownloadUrl, targetFile, "Bastyon: Downloading video");
+									// Start the download and persist the promise to be able to cancel the download.
+									app.downloadPromise = download.startAsync().then(function(e) {
+										// Success
+										console.log("success");
+										console.log(e);
+									}, function(e) {
+										// Error
+										console.log("error");
+										console.log(e);
+									}, function(e) {
+										// Progress
+										console.log("progress");
+										console.log(e);
+									});
+								});
+							});
+						});
+					});
+				}
+				// Desktop
+				else {
+					var a = document.createElement("a");
+					a.href = video.fileDownloadUrl;
+					a.setAttribute("download", video.resolution.id + '.mp4');
+					a.click();
+				}
 			},
 
 			like : function(){

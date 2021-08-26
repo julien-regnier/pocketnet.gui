@@ -9,198 +9,206 @@ var downloadslist = (function(){
 		var primary = deep(p, 'history');
 
 		var el;
-		var downloads = [],
-			cnt = 50,
-			end = false,
-			extra = null,
-			page = 0;
-
-		var loading;
+		var downloads,
+			inited = false;
 
 		var actions = {
-			
-		}
-
-		var events = {
-			// loadmorescroll : function(){
-
-			// 	if (
-
-			// 		($(window).scrollTop() + $(window).height() > $(document).height() - 400) 
-
-			// 		&& !loading && !end) {
-
-			// 		makepage()
-
-			// 	}
-			// }
+			startSpinner : function() {
+				if(el && el.loader)
+					el.loader.show();
+			},
+			stopSpinner : function() {
+				if(el && el.loader)
+					el.loader.hide();
+			}
 		}
 
 		var renders = {
-			page : function(downloads, clbk){
+			showVideos : function(downloads){
 
-				// self.shell({
+				_.each(downloads, function(download, index) {
 
-				// 	name :  'users',
-				// 	el :   el.users,
-				// 	data : {
-				// 		downloads : downloads,
-				// 		extra : extra
-				// 	},
+					var videoContainer = el.c.find('.videoRow.' + download.id);
 
-				// 	inner : append
+					// Find best quality (biggest file)
+					var video = download.videos[0];
+					_.each(download.videos, function(vid) {
+						if (!video || video.size < vid.size)
+							video = vid;
+					});
 
-				// }, function(_p){
-				// 	if (clbk)
-				// 		clbk()
-				// })
-			}
-		}
+					window.resolveLocalFileSystemURL(video.nativeURL, function(entry) {
 
-		var load = {
-			info : function(downloads, clbk){
-				if(loading) return
+						var videoElement = document.createElement('video');
+						videoElement.controls = 'controls';
+						videoElement.controlsList = 'nodownload';
+						videoElement.src = entry.toInternalURL() + '#t=0.1';
 
-				loading = true;
+						if (index > 0)
+							videoContainer.append(document.createElement('hr'));
+						
+							videoContainer.append(videoElement);
+						
 
-				topPreloader(80);
+					}, (err) => console.log(err));
 
-				el.c.addClass('loading')
-
-				//self.sdk.users.get(addresses, function(){
-				setTimeout(() => {
-
-					el.c.removeClass('loading')
-
-					loading = false;
-
-					topPreloader(100);
-
-					if (clbk)
-						clbk()
-				}, 5000);
-			}
-		}
-
-		var makepage = function(clbk){
-
-			// var newadresses = _.filter(addresses, function(a, i){
-			// 	if(i >= (page * cnt) && i < ((page + 1) * cnt)){
-			// 		return true;
-			// 	}
-			// })	
-
-			// if(newadresses.length){
-
-			// 	load.info(newadresses, function(){
-			// 		renders.page(newadresses, clbk)
-			// 	})
-
-			// 	page++
-			// }
-			// else
-			// {
-			// 	end = true;
-			// }
-
-			
-
-		}
-
-		var state = {
-			save : function(){
-
-			},
-			load : function(){
-				
+				});
 			}
 		}
 
 		var initEvents = function(){
-			
-			el.downloadButton.on('click', function() {
-
-				if (!cordova || !cordova.file) return;
-				// Check if external storage is available, if not, use the internal
-				var storage = (cordova.file.externalDataDirectory) ? cordova.file.externalDataDirectory : cordova.file.dataDirectory;
-				var fileName = "fragmented.mp4";
-				var uriString = "https://media.zat.im/download/streaming-playlists/hls/videos/45689eee-9c51-493a-9155-876429af5c55-576-fragmented.mp4";
-				// open target file for download
-				window.resolveLocalFileSystemURL(storage, function(dirEntry) {
-					dirEntry.getFile(fileName, { create: true }, function (targetFile) {
-						var downloader = new BackgroundTransfer.BackgroundDownloader();
-						// Create a new download operation.
-						var download = downloader.createDownload(uriString, targetFile);
-						// Start the download and persist the promise to be able to cancel the download.
-						app.downloadPromise = download.startAsync().then(function(e) {
-							// Success
-							console.log("success");
-							console.log(e);
-						}, function(e) {
-							// Error
-							console.log("error");
-							console.log(e);
-						}, function(e) {
-							// Progress
-							console.log("progress");
-							console.log(e);
-						});
-					});
-				});
-
-			});
-			
+	
 		}
 
-		var make = function(){
-			makepage(function(){
-				// window.addEventListener('scroll', events.loadmorescroll)
-			})
-		}
 
 		return {
 			primary : primary,
 
 			getdata : function(clbk, p){
 
-				end = false;
-				page = 0;
-				loading = false;
-
 				var data = {};
 
-				downloads = deep(p.settings, 'essenseData.downloads') || []
+				// Look in storage for all the videos
+				if (isMobile() && window.cordova && window.cordova.file) {
+					// Check if external storage is available, if not, use the internal
+					var storage = (window.cordova.file.externalDataDirectory) ? window.cordova.file.externalDataDirectory : window.cordova.file.dataDirectory;
+					// open target file for download
+					window.resolveLocalFileSystemURL(storage, function(dirEntry) {
+						// Create a downloads folder
+						dirEntry.getDirectory('Downloads', { create: true }, function (dirEntry2) {
+							var directoryReader = dirEntry2.createReader();
+							directoryReader.readEntries(function(videoFolders) {
 
-				data.downloads = downloads
+								var nbVideosDone = 0, downloads = [], done = false;
+
+								var checkDone = function() {
+									nbVideosDone += 1;
+									if (nbVideosDone >= videoFolders.length && !done) {
+										setTimeout(() => {
+											data.downloads = _.sortBy(downloads, function(download) {
+												return download.videos[0].fileDetails.lastModified;
+											}).reverse();
+											actions.stopSpinner();
+											setTimeout(() => {
+												renders.showVideos(data.downloads);
+											}, 200);
+											clbk(data);
+										}, 500);
+										done = true;
+									}
+								}
+
+								_.each(videoFolders, function(videoFolder) {
+									if (videoFolder.isDirectory) {
+										videoFolder.createReader().readEntries(function(videos) {
+											var videoObj = { id: videoFolder.name, videos: [] };
+											_.each(videos, function(file) {
+												if (file.isFile && file.name.endsWith('.mp4')) {
+													file.file(function(fileDetails) { file.fileDetails = fileDetails; });
+													videoObj.videos.push(file);
+												}
+											});
+											if (videoObj.videos.length > 0)
+												downloads.push(videoObj);
+											checkDone();
+										}, function() {
+											checkDone();
+										});
+									} else
+										checkDone();
+								});
+
+								checkDone();
+
+							}, function() {
+
+								data.hasError = true;
+								downloads = [];
+								data.downloads = downloads;
+								actions.stopSpinner();
+								clbk(data);
+
+							});
+
+						});
+					});
+				}
+
+				data.downloads = downloads;
 				data.empty = deep(p.settings, 'essenseData.empty');
-
-				extra = deep(p.settings, 'essenseData.extra');
+				data.caption = deep(p.settings, 'essenseData.caption');
+				data.error = deep(p.settings, 'essenseData.error');
+				data.hasError = false;
 
 				clbk(data);
+
+				/*
+				data.downloads = [{
+					id: '00750431-27a2-47a9-9081-a56f81a372c1',
+					videos: [{
+						fullPath: "/Downloads/00750431-27a2-47a9-9081-a56f81a372c1/480.mp4",
+						name: "480.mp4",
+						nativeURL: "file:///storage/emulated/0/Android/data/pocketnet.app/files/Downloads/00750431-27a2-47a9-9081-a56f81a372c1/480.mp4"
+					}]
+				},{
+					id: '757f2527-b3e7-4c4a-9120-9dba31519f34',
+					videos: [{
+						fullPath: "/Downloads/757f2527-b3e7-4c4a-9120-9dba31519f34/480.mp4",
+						name: "480.mp4",
+						nativeURL: "file:///storage/emulated/0/Android/data/pocketnet.app/files/Downloads/757f2527-b3e7-4c4a-9120-9dba31519f34/480.mp4"
+					},{
+						fullPath: "/Downloads/757f2527-b3e7-4c4a-9120-9dba31519f34/720.mp4",
+						name: "720.mp4",
+						nativeURL: "file:///storage/emulated/0/Android/data/pocketnet.app/files/Downloads/757f2527-b3e7-4c4a-9120-9dba31519f34/720.mp4"
+					},{
+						fullPath: "/Downloads/757f2527-b3e7-4c4a-9120-9dba31519f34/360.mp4",
+						name: "360.mp4",
+						nativeURL: "file:///storage/emulated/0/Android/data/pocketnet.app/files/Downloads/757f2527-b3e7-4c4a-9120-9dba31519f34/360.mp4"
+					}]
+				},{
+					id: 'c3ef61bb-c311-4778-8c68-8a9d6cf5d96a',
+					videos: [{
+						fullPath: "/Downloads/c3ef61bb-c311-4778-8c68-8a9d6cf5d96a/720.mp4",
+						name: "720.mp4",
+						nativeURL: "file:///storage/emulated/0/Android/data/pocketnet.app/files/Downloads/c3ef61bb-c311-4778-8c68-8a9d6cf5d96a/720.mp4"
+					}]
+				}];
+				*/
+
+
+				/*setTimeout(() => {
+
+					
+
+					actions.stopSpinner();
+
+					
+				}, 200);*/
+
 
 			},
 
 			destroy : function(){
-
-				// window.removeEventListener('scroll', events.loadmorescroll)
 
 				el = {};
 			},
 			
 			init : function(p){
 
-				state.load();
-
 				el = {};
 				el.c = p.el.find('#' + self.map.id);
 				el.downloads = el.c.find('.downloads');
-				el.downloadButton = el.c.find('#downloadButton');
+				el.loader = el.c.find('.loaderWrapper');
+
+				if (inited) return;
 
 				initEvents();
 
-				make();
+				actions.startSpinner();
 
 				p.clbk(null, p);
+
+				inited = true;
 			}
 		}
 	};

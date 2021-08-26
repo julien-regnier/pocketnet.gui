@@ -311,7 +311,10 @@ var author = (function(){
 						mobile : '<i class="fas fa-download"></i>',
 						id : 'downloadslist',
 						render : 'downloadslist',
-						history : true
+						history : true,
+						if : function(){
+							return isMobile();
+						}
 					},
 					
 		
@@ -641,6 +644,7 @@ var author = (function(){
 					essenseData : {
 						downloads : [],
 						empty : self.app.localization.e('downloadsEmpty'),
+						error : self.app.localization.e('downloadsError'),
 						caption : self.app.localization.e('downloads')
 					},
 					

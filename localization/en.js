@@ -225,6 +225,7 @@ ____loclib.following = "Following";
 ____loclib.settings = "MANAGE";
 ____loclib.downloads = "DOWNLOADS";
 ____loclib.downloadsEmpty = "You have not downloaded any video yet";
+____loclib.downloadsError = "Cannot get the list of downloaded videos";
 ____loclib.anofollowers = "This user has no followers";
 ____loclib.aynofollowers = "You have no followers";
 ____loclib.anofollowing = "This user is not following anyone";
